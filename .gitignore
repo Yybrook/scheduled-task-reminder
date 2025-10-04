@@ -15,5 +15,5 @@ migrations
 # 自定义环境
 .env
 
-
-
+# github 语言设置
+.gitattributes
