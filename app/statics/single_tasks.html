@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Task Reminder</title>
+
+    <style>
+        body {
+            margin: 50px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /*justify-content: center;*/
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            /*max-width: 1200px;*/
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap; /* 小屏幕自动换行 */
+            gap: 20px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+
+        .form-group {
+            flex: 1; /* 平均分配空间 */
+            min-width: 180px; /* 避免太窄 */
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .btn {
+            min-width: 100px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            background: #007bff;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: flex-start;;
+            gap: 15px;
+            /*margin-top: 5px;*/
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        table th, table td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        table tr:hover {
+            background-color: #f1f7ff;
+        }
+
+        button.mark-done-btn {
+            padding: 5px 8px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button.mark-done-btn:hover {
+            background-color: #1e7e34;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<header>
+    <h1>Scheduled Task Reminder</h1>
+</header>
+
+<main class="container">
+    <h2>单例任务查询</h2>
+    <form id="singleTasksSearchForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">起始时间</label>
+                <input type="date" name="startDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">结束时间</label>
+                <input type="date" name="endDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">任务名称</label>
+                <input type="text" name="taskName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">是否完成</label>
+                <select name="isDone" class="form-control">
+                    <option value="">全部</option>
+                    <option value="true">已完成</option>
+                    <option value="false">未完成</option>
+                </select>
+            </div>
+        </div>
+        <div class="buttons">
+            <button type="submit" class="btn">查询</button>
+            <button type="button" class="btn" id="backBtn">返回</button>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table id="singleTasksResultTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>名称</th>
+                <th>描述</th>
+                <th>时间</th>
+                <th>进度</th>
+                <th>备注</th>
+                <th>是否完成</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<script src="/statics/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const backBtn = document.getElementById('backBtn');
+        const singleTasksSearchForm = document.getElementById('singleTasksSearchForm');
+        const singleTasksResultTbody = document.querySelector("#singleTasksResultTable tbody");
+
+        // 登录请求函数
+        async function handleSingleTasksSearch(start_date, end_date, is_done, task_name) {
+            try {
+                const params = new URLSearchParams({start_date, end_date});
+                if (is_done !== "") params.append("is_done", is_done);
+                if (task_name !== "") params.append("task_name", task_name);
+
+                const response = await fetch("/single_tasks/search?" + params.toString());
+                if (response.ok) {
+                    showAlert('查询单个任务成功', 'success');
+                    // 显示表格
+                    const data = await response.json();
+                    renderSingleTasksTable(data);
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`查询单个任务失败: ${errorMsg}`, 'danger');
+                    console.error(`查询单个任务失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`查询单个任务失败: ${err.message}`, 'danger');
+                console.error(`查询单个任务失败: ${err.message}`);
+            }
+        }
+
+        // 渲染表格
+        function renderSingleTasksTable(data) {
+            // 清空表格
+            singleTasksResultTbody.innerHTML = "";
+            data.forEach(row => {
+                const tr = singleTasksResultTbody.insertRow();
+                tr.insertCell().textContent = row.id;
+                tr.insertCell().textContent = row.task.name;
+                tr.insertCell().textContent = row.task.message;
+                tr.insertCell().textContent = formatDateTime(row.datetime);
+                tr.insertCell().textContent = progress(row.done_times, row.repeat_times);
+                tr.insertCell().textContent = row.remark;
+                tr.insertCell().textContent = row.is_done ? "✅" : "❌";
+                const actionCell = tr.insertCell();
+                if (!row.is_done) {
+                    const btn = document.createElement("button");
+                    btn.textContent = "标记完成";
+                    btn.className = "mark-done-btn";
+                    btn.onclick = () => markSingleTaskDone(row.id);
+                    actionCell.appendChild(btn);
+                }
+            });
+        }
+
+        // 标记为完成
+        async function markSingleTaskDone(id) {
+            try {
+                const response = await fetch(`/single_tasks/${id}/done`, {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json; charset=UTF-8',
+                        },
+                    }
+                );
+                if (response.ok) {
+                    showAlert(`标记任务完成成功`, 'success');
+                    // 重新加载
+                    singleTasksSearchForm.dispatchEvent(new Event("submit"));
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`标记任务完成失败: ${errorMsg}`, 'danger');
+                    console.error(`标记任务完成失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`标记任务完成失败: ${err.message}`, 'danger');
+                console.error(`标记任务完成失败: ${err.message}`);
+            }
+        }
+
+        // 监听表单提交
+        singleTasksSearchForm.addEventListener('submit', (e) => {
+            // 阻止表单默认的提交行为（默认会刷新页面）
+            e.preventDefault();
+            const formData = new FormData(singleTasksSearchForm);
+
+            const start_date = formData.get('startDate')
+            const end_date = formData.get('endDate')
+            const is_done = formData.get('isDone')
+            const task_name = formData.get('taskName')
+
+            handleSingleTasksSearch(start_date, end_date, is_done, task_name);
+        });
+
+        // 返回按钮
+        backBtn.addEventListener('click', () => {
+            window.location.href = '/index';
+        });
+    });
+
+</script>
+</body>
+</html>

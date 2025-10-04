@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Task Reminder</title>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            background: #007bff;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .form-helper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            margin: 5px 0 10px;
+            color: #666;
+        }
+
+        .form-helper .link-like {
+            text-decoration: none;
+            cursor: pointer;
+            color: #007bff;
+        }
+
+        .form-helper .link-like:hover {
+            text-decoration: underline;
+        }
+
+
+    </style>
+
+</head>
+
+
+<body>
+
+<header>
+    <h1>Scheduled Task Reminder</h1>
+</header>
+
+<main class="container">
+    <h2>个人信息</h2>
+
+    <form id="profileForm">
+        <div class="form-group">
+            <label for="emailInput" class="form-label">邮箱地址</label>
+            <input type="email" name="email" class="form-control" id="emailInput">
+
+            <div class="form-helper">
+                <small>用于接收提醒邮件</small>
+                <span class="link-like" id="testEmailBtn">测试邮箱</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button type="submit" class="btn">保存</button>
+            <button type="button" class="btn" id="backBtn">返回</button>
+        </div>
+    </form>
+</main>
+
+<script src="/statics/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const profileForm = document.getElementById('profileForm');
+        const backBtn = document.getElementById('backBtn');
+        const testEmailBtn = document.getElementById('testEmailBtn');
+        const emailInput = document.getElementById('emailInput');
+
+        async function handleUpdateUser(email) {
+            try {
+                const response = await fetch('/user/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                    body: JSON.stringify({
+                        email: email || null
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('个人信息设置成功', 'success');
+                    // 1秒后，转到 /index
+                    setTimeout(() => {
+                        window.location.href = '/index';
+                    }, 1000);
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`个人信息设置失败: ${errorMsg}`, 'danger');
+                    console.error(`个人信息设置失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`个人信息设置失败: ${err.message}`, 'danger');
+                console.error(`个人信息设置失败: ${err.message}`);
+            }
+        }
+
+        // 加载个人配置
+        async function loadProfile() {
+            try {
+                const response = await fetch('/user/profile');
+                if (response.ok) {
+                    const data = await response.json();
+                    emailInput.value = data.email || '';
+                    showAlert('个人信息加载成功', 'success');
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`个人信息加载失败: ${errorMsg}`, 'danger');
+                    console.error(`个人信息加载失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`个人信息加载失败: ${err.message}`, 'danger');
+                console.error(`个人信息加载失败: ${err.message}`);
+            }
+        }
+
+        // 测试邮箱
+        async function testEmail(email) {
+            try {
+                const response = await fetch('/user/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();  // 解析 JSON
+                    if (data.success) {
+                        showAlert('邮件发送成功', 'success');
+                    } else {
+                        const errorMsg = data.error;
+                        showAlert(`邮件发送失败: ${errorMsg}`, 'danger');
+                        console.error(`邮件发送失败: ${errorMsg}`);
+                    }
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`邮件发送失败: ${errorMsg}`, 'danger');
+                    console.error(`邮件发送失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`邮件发送失败: ${err.message}`, 'danger');
+                console.error(`邮件发送失败: ${err.message}`);
+            }
+        }
+
+        loadProfile();
+
+        // 监听表单提交
+        profileForm.addEventListener('submit', (e) => {
+            // 阻止表单默认的提交行为（默认会刷新页面）
+            e.preventDefault();
+            const formData = new FormData(profileForm);
+            const email = formData.get('email');
+            handleUpdateUser(email);
+        });
+
+        // 返回按钮
+        backBtn.addEventListener('click', () => {
+            window.location.href = '/index';
+        });
+
+        // 测试邮箱
+        testEmailBtn.addEventListener('click', () => {
+            // alert("功能未实现");
+            const formData = new FormData(profileForm);
+            const email = formData.get('email');
+            testEmail(email);
+        });
+
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Task Reminder</title>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            background: #007bff;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .login-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+
+<body>
+
+<header>
+    <h1>Scheduled Task Reminder</h1>
+</header>
+
+<main class="container">
+    <h2>注册账号</h2>
+    <form id="registerForm">
+        <div class="form-group">
+            <label for="usernameInput" class="form-label">用户名</label>
+            <input type="text" name="username" class="form-control" id="usernameInput" required>
+        </div>
+        <div class="form-group">
+            <label for="passwordInput" class="form-label">密码</label>
+            <input type="password" name="password" class="form-control" id="passwordInput" required>
+        </div>
+        <button type="submit" class="btn">注册</button>
+        <div class="login-link">
+            <a href="/login">已有账号？去登录</a>
+        </div>
+    </form>
+</main>
+
+<script src="/statics/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const registerForm = document.getElementById('registerForm');
+
+        // 注册请求函数
+        async function handleRegister(username, password) {
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                    body: JSON.stringify({username, password})
+                });
+
+                if (response.ok) {
+                    showAlert('注册成功，请登录', 'success');
+                    // 1秒后，转到 /login
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`注册失败: ${errorMsg}`, 'danger');
+                    console.error(`登录失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`注册失败: ${err.message}`, 'danger');
+                console.error(`登录失败: ${err.message}`);
+            }
+        }
+
+        // 监听表单提交
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(registerForm);
+            const username = formData.get('username');
+            const password = formData.get('password');
+            handleRegister(username, password);
+        });
+    });
+</script>
+</body>
+</html>

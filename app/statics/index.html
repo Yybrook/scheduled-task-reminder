@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Task Reminder</title>
+
+    <style>
+        body {
+            margin: 50px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /*justify-content: center;*/
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            /*max-width: 1200px;*/
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            min-width: 100px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            background: #007bff;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            /*margin-top: 5px;*/
+            margin-bottom: 5px;
+        }
+
+        /* 任务容器 */
+        #tasksContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center; /* ✅ 居中卡片 */
+            margin-top: 25px;
+        }
+
+        /* 单个任务卡片 */
+        .task-card {
+            border: 1px solid #007bff;
+            border-radius: 6px;
+            padding: 8px;
+            background: #f1f7ff;
+            display: flex;
+            flex-direction: column;;
+            gap: 3px;
+            flex: 1 1 220px;
+            max-width: 300px;
+            box-sizing: border-box;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 14px rgba(0, 123, 255, 0.25);
+        }
+
+        .task-card p {
+            margin: 2px 0;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .task-card strong {
+            color: #333;
+        }
+
+        /* 标记完成按钮 */
+        .done-btn {
+            padding: 4px 8px;
+            margin-top: 6px;
+            width: 100px;
+            border: none;
+            border-radius: 4px;
+            background: #28a745;
+            color: #fff;
+            cursor: pointer;
+            align-self: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .done-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+
+        /* 任务提示 */
+        .task-header {
+            font-size: 2rem;
+            color: #555;
+            text-align: center;
+            margin-top: 40px;
+            width: 100%;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<header>
+    <h1>Hello Yy, Welcome to Scheduled Task Reminder</h1>
+</header>
+
+<main class="container">
+    <div class="buttons">
+        <button type="button" class="btn" id="newTaskBtn">新建任务</button>
+        <button type="button" class="btn" id="scheduledTaskSearchBtn">任务序列查询</button>
+        <button type="button" class="btn" id="singleTaskSearchBtn">单例任务查询</button>
+        <button type="button" class="btn" id="userProfileBtn">个人信息</button>
+        <button type="button" class="btn" id="logoutBtn">退出登录</button>
+    </div>
+
+    <div id="tasksContainer">
+        <!-- 任务矩形框会动态插入这里 -->
+    </div>
+
+</main>
+
+<script src="/statics/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const newTaskBtn = document.getElementById('newTaskBtn');
+        const scheduledTaskSearchBtn = document.getElementById('scheduledTaskSearchBtn');
+        const singleTaskSearchBtn = document.getElementById('singleTaskSearchBtn');
+        const userProfileBtn = document.getElementById('userProfileBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const tasksContainer = document.getElementById("tasksContainer");
+        const HeaderH1 = document.querySelector("Header h1");
+
+        async function loadTodayTasks() {
+            // 清空
+            tasksContainer.innerHTML = "";
+
+            // yyyy-mm-dd
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const url = `/single_tasks/search/?start_date=${todayStr}&end_date=${todayStr}`;
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const tasks = await response.json();
+                    if (!tasks || tasks.length === 0) {
+                        todayWithNoTasks();
+                    } else {
+                        todayWithTasks(tasks);
+                    }
+
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`加载今日任务失败: ${errorMsg}`, 'danger');
+                    console.error(`加载今日任务失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`加载今日任务失败: ${err.message}`, 'danger');
+                console.error(`加载今日任务失败: ${err.message}`);
+            }
+        }
+
+        function todayWithTasks(tasks) {
+            // 判断是否全部完成
+            const allDone = tasks.every(task => task.is_done);
+            // 设置标题
+            tasksContainer.innerHTML = `<p class="task-header">${allDone ? "今日事了，功成身退" : "今日有事，加油"}</p>`;
+            // 遍历任务，生成矩形框
+            tasks.forEach(task => {
+                const card = document.createElement("div");
+                card.className = "task-card";
+                // 显示任务信息
+                card.innerHTML = `
+                <p><strong>名称:</strong> ${task.task.name}</p>
+                <p><strong>描述:</strong> ${task.task.message || ""}</p>
+                <p><strong>时间:</strong> ${formatDateTime(task.datetime)}</p>
+                <p><strong>进度:</strong> ${progress(task.done_times, task.repeat_times)}</p>
+                <p><strong>状态:</strong> ${task.is_done ? "已完成 ✅" : "未完成 ❌"}</p>
+            `;
+                // 如果未完成，添加“标记完成”按钮
+                if (!task.is_done) {
+                    const btn = document.createElement("button");
+                    btn.textContent = "标记完成";
+                    btn.className = "done-btn";
+                    btn.onclick = () => markSingleTaskDone(task.id);
+                    card.appendChild(btn);
+                }
+                tasksContainer.appendChild(card);
+            });
+        }
+
+        async function markSingleTaskDone(id) {
+            try {
+                const response = await fetch(`/single_tasks/${id}/done`, {method: "POST"});
+                if (response.ok) {
+                    showAlert(`标记任务完成成功`, 'success');
+                    await loadTodayTasks(); // 重新加载
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`标记任务完成失败: ${errorMsg}`, 'danger');
+                    console.error(`标记任务完成失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`标记任务完成失败: ${err.message}`, 'danger');
+                console.error(`标记任务完成失败: ${err.message}`);
+            }
+        }
+
+        function todayWithNoTasks() {
+            tasksContainer.innerHTML = `<p class="task-header">今日无事，退朝</p>`;
+        }
+
+        async function getUsername() {
+            try {
+                const response = await fetch('/user/me');
+                if (response.ok) {
+                    const data = await response.json();
+                    HeaderH1.textContent = `Hello ${data.username}, Welcome to Scheduled Task Reminder`;
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`获取个人信息失败: ${errorMsg}`, 'danger');
+                    console.error(`获取个人信息失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`获取个人信息失败: ${err.message}`, 'danger');
+                console.error(`获取个人信息失败: ${err.message}`);
+            }
+        }
+
+        // 退出登录
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                });
+                if (response.ok) {
+                    showAlert(`退出登录成功`, 'success');
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`退出登录失败: ${errorMsg}`, 'danger');
+                    console.error(`退出登录失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`退出登录失败: ${err.message}`, 'danger');
+                console.error(`退出登录失败: ${err.message}`);
+            }
+            // 1秒后，转到 /login
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+        }
+
+        // 初始化页面
+        getUsername();
+        loadTodayTasks();
+
+        // 新建任务按钮
+        newTaskBtn.addEventListener('click', () => {
+            window.location.href = '/new_task';
+        });
+        // 任务序列查询
+        scheduledTaskSearchBtn.addEventListener('click', () => {
+            window.location.href = '/scheduled_tasks';
+        });
+        // 单例任务查询按钮
+        singleTaskSearchBtn.addEventListener('click', () => {
+            window.location.href = '/single_tasks';
+        });
+        // 个人信息按钮
+        userProfileBtn.addEventListener('click', () => {
+            window.location.href = '/user';
+        });
+        // 退出登录按钮
+        logoutBtn.addEventListener('click', () => {
+            logout();
+        });
+
+    });
+
+
+</script>
+</body>
+</html>

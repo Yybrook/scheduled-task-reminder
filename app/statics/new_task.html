@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Task Reminder</title>
+
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            background: #007bff;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        legend {
+            font-weight: bold;
+            padding: 0 10px;
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .checkbox-items label {
+            margin-right: 15px;
+        }
+
+        .checkbox-items input[type="checkbox"] {
+            margin-right: 20px;
+            margin-bottom: 15px;
+            width: auto;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Scheduled Task Reminder</h1>
+</header>
+
+<main class="container">
+    <h2>新建任务</h2>
+    <form id="newTaskForm">
+        <fieldset>
+            <legend>任务</legend>
+            <div class="form-group">
+                <label for="nameInput" class="form-label">名称</label>
+                <input type="text" name="name" class="form-control" id="nameInput" required>
+            </div>
+            <div class="form-group">
+                <label for="messageTextarea" class="form-label">描述</label>
+                <textarea name="message" rows="3" class="form-control" id="messageTextarea" ></textarea>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>开始时间</legend>
+            <div class="form-group">
+                <label for="startDateInput" class="form-label">日期</label>
+                <input type="date" name="start_date" class="form-control" id="startDateInput" required>
+            </div>
+            <div class="form-group">
+                <label for="endDateInput" class="form-label">时间</label>
+                <input type="time" name="start_time" class="form-control" id="endDateInput" required>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>周期</legend>
+            <div class="form-group">
+                <label for="repeatTypeSelect" class="form-label">重复类型</label>
+                <select name="repeat_type" class="form-control" id="repeatTypeSelect" required>
+                    <option value="none">不重复</option>
+                    <option value="days">每天</option>
+                    <option value="weeks">每周</option>
+                    <option value="months">每月</option>
+                    <option value="years">每年</option>
+                    <option value="daysInterval">间隔N天</option>
+                    <option value="weeksInterval">间隔N周</option>
+                    <option value="monthsInterval">间隔N月</option>
+                    <option value="yearsInterval">间隔N年</option>
+                </select>
+            </div>
+            <div class="form-group hidden" id="repeatIntervalGroup">
+                <label for="repeatIntervalInput" class="form-label">间隔N</label>
+                <input type="number" name="repeat_interval" class="form-control" min="1" placeholder="请输入间隔N" id="repeatIntervalInput">
+            </div>
+            <div class="form-group">
+                <label for="repeatTimesInput" class="form-label">重复次数</label>
+                <input type="number" name="repeat_times" class="form-control" min="-1" value="-1" id="repeatTimesInput">
+                <small>重复次数 <1 表示不限次数</small>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>提醒</legend>
+            <div class="form-group">
+                <label class="form-label">提前N天提醒 [多选]</label>
+                <div class="checkbox-items">
+                    <label><input type="checkbox" name="advance_days" value="1"> 提前 1 天</label><br>
+                    <label><input type="checkbox" name="advance_days" value="2"> 提前 2 天</label><br>
+                    <label><input type="checkbox" name="advance_days" value="7"> 提前 7 天</label><br>
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="buttons">
+            <button type="submit" class="btn">保存</button>
+            <button type="button" class="btn" id="backBtn">返回</button>
+        </div>
+
+    </form>
+</main>
+
+<script src="/statics/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const backBtn = document.getElementById('backBtn');
+        const repeatTypeSelect = document.getElementById('repeatTypeSelect')
+        const newTaskForm = document.getElementById('newTaskForm');
+
+        // 登录请求函数
+        async function handleNewTask(name, message, start_date, start_time, repeat_type, repeat_interval, repeat_times, advance_days) {
+            try {
+                const response = await fetch('/new_task', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                    body: JSON.stringify({name, message, start_date, start_time, repeat_type, repeat_interval, repeat_times, advance_days})
+                });
+
+                if (response.ok) {
+                    showAlert('新建任务成功', 'success');
+                    // 1秒后，转到 /index
+                    setTimeout(() => {
+                        window.location.href = '/index';
+                    }, 1000);
+                } else {
+                    const errorMsg = await response.text();
+                    showAlert(`新建任务失败: ${errorMsg}`, 'danger');
+                    console.error(`新建任务失败: ${errorMsg}`);
+                }
+            } catch (err) {
+                showAlert(`新建任务失败: ${err.message}`, 'danger');
+                console.error(`新建任务失败: ${err.message}`);
+            }
+        }
+
+        function decode_repeat_type(repeat_type, repeat_interval) {
+            if (repeat_type.endsWith('Interval')) {
+                // 去掉结尾的 'Interval'
+                const _type = repeat_type.replace(/Interval$/, '');
+                return {repeat_type: _type, repeat_interval: repeat_interval ? parseInt(repeat_interval) : -1};
+            } else {
+                if (repeat_type === "none") {
+                    return {repeat_type: "none", repeat_interval: -1};
+                } else {
+                    return {repeat_type: repeat_type, repeat_interval: 0};
+                }
+            }
+        }
+
+        // 监听表单提交
+        newTaskForm.addEventListener('submit', (e) => {
+            // 阻止表单默认的提交行为（默认会刷新页面）
+            e.preventDefault();
+            const formData = new FormData(newTaskForm);
+            const name = formData.get('name');
+            const message = formData.get('message');
+
+            const start_date = formData.get('start_date');
+            const start_time = formData.get('start_time');
+
+            const {repeat_type, repeat_interval} = decode_repeat_type(formData.get('repeat_type'), formData.get('repeat_interval'))
+            const repeat_times = parseInt(formData.get('repeat_times')) || -1;
+
+            const advance_days = formData.getAll('advance_days').map(day => parseInt(day));
+
+            handleNewTask(name, message, start_date, start_time, repeat_type, repeat_interval, repeat_times, advance_days);
+        });
+
+        // 控制间隔N的显示
+        repeatTypeSelect.addEventListener('change', function () {
+            const repeatIntervalGroup = document.getElementById('repeatIntervalGroup');
+            const needsInterval = this.value.endsWith('Interval');
+            repeatIntervalGroup.classList.toggle('hidden', !needsInterval);
+        });
+
+        // 返回按钮
+        backBtn.addEventListener('click', () => {
+            window.location.href = '/index';
+        });
+
+    });
+
+</script>
+</body>
+</html>

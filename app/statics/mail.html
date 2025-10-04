@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>任务提醒</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f6f2;
+            margin: 0;
+            padding: 20px;
+            max-width: 800px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px 30px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            border: 1px solid #ffe5b4;
+        }
+
+        .card h2 {
+            color: #ff8c00;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .illustration {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .illustration img {
+            width: 150px;
+            height: auto;
+            border-radius: 8px;
+            opacity: 0.95;
+            flex-shrink: 0;
+        }
+
+        p {
+            margin: 8px 0;
+            font-size: 15px;
+            color: #333;
+        }
+
+        p strong {
+            color: #444;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+        }
+
+        small {
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Hello {{ username }}, 这是{{ note }}: </h2>
+    {% if img_data_uri %}
+    <div class="illustration">
+        <img src="{{ img_data_uri }}" alt="Reminder Illustration"/>
+    </div>
+    {% endif %}
+    <p><strong>任务：</strong> {{ task_name }}</p>
+    <p><strong>内容：</strong> {{ message }}</p>
+    <p><strong>时间：</strong> {{ task_datetime }}</p>
+    <p><strong>模式：</strong> {{ repeat_type }}</p>
+    <p><strong>计数：</strong> {{ task_done }}</p>
+    <hr>
+    <p><small>—— 来自 Scheduled Task Reminder</small></p>
+</div>
+</body>
+</html>
