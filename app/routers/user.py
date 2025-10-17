@@ -1,9 +1,10 @@
 import os
 import typing
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel, EmailStr
 from app.models.models import User
+from app.routers.mail import MailInfo, MailSender, format_mail_task
 from app import auth, ulity
 
 
@@ -58,23 +59,41 @@ async def update_profile(profile: ProfileIn, user: User = Depends(auth.get_user_
 
 
 @router.post("/email")
-async def test_email(profile: ProfileIn, user: User = Depends(auth.get_user_from_request)):
-    context = {
-        "username": user.username,
-        "task_name": "邮件测试任务",
-        "message": "用于电子邮件的发送测试，无需回复",
-        "task_datetime": ulity.now().strftime("%Y-%m-%d %H:%M"),
-        "task_done": 1,
-        "repeat_type": "不重复",
-        "note": "邮件测试"
-    }
+async def test_email(request: Request, profile: ProfileIn, user: User = Depends(auth.get_user_from_request)):
     try:
-        await ulity.send_email_html(
-            email=profile.email,
-            subject=f"[邮件测试] 邮件测试任务",
-            context=context,
+
+        mail_info = MailInfo(
+            to=profile.email,
+            subject="[邮件测试] 邮件测试任务",
+            username=user.username,
+            task_name="邮件测试任务",
+            message="用于电子邮件的发送测试，无需回复",
+            task_datetime=ulity.now(),
+            task_done=1,
+            repeat_type="不重复",
+            note="邮件测试",
             local_image_path="./statics/logo.jpg"
         )
-        return {"success": True, "message": "send mail successfully" }
+        mail_task = format_mail_task(mail_info)
+        # 从 app.state 取出全局 MailSender 实例
+        mail_sender: MailSender = request.app.state.mail_sender
+        await mail_sender.add_task(mail_task)
+
+        # context = {
+        #     "username": user.username,
+        #     "task_name": "邮件测试任务",
+        #     "message": "用于电子邮件的发送测试，无需回复",
+        #     "task_datetime": ulity.now().strftime("%Y-%m-%d %H:%M"),
+        #     "task_done": 1,
+        #     "repeat_type": "不重复",
+        #     "note": "邮件测试"
+        # }
+        # await ulity.send_email_with_win32(
+        #     to=str(profile.email),
+        #     subject=f"[邮件测试] 邮件测试任务",
+        #     context=context,
+        #     local_image_path="./statics/logo.jpg"
+        # )
+        return {"success": True, "message": "邮件任务添加成功"}
     except Exception as err:
-        return {"success": False, "error": str(err) }
+        raise HTTPException(status_code=500, detail=f"邮件任务添加失败: {err}")

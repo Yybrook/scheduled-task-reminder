@@ -3,17 +3,19 @@ import base64
 import datetime
 import zoneinfo
 import bcrypt
-import smtplib
 import asyncio
 import json
 from PIL import Image
 import io
 import jinja2
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.header import Header
-from email.utils import formataddr
-from app.env import settings
+import win32com.client as win32
+import traceback
+# import smtplib
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
+# from email.header import Header
+# from email.utils import formataddr
+# from app.env import settings
 
 
 
@@ -102,10 +104,70 @@ def image_to_data_uri(path: str, max_size=(150, 150)) -> str:
         encoded = base64.b64encode(buf.getvalue()).decode()
         return f"data:image/png;base64,{encoded}"
 
-async def send_email_html(email: str, subject: str, context: typing.Dict, local_image_path: str = None):
+# async def send_email_with_smtp(email: str, subject: str, context: typing.Dict, local_image_path: str = None):
+#     """
+#     异步发送 HTML 邮件（使用 asyncio.to_thread 避免阻塞）
+#     :param email:
+#     :param local_image_path:
+#     :param subject: 邮件主题
+#     :param context: 邮件内容字典
+#                     "username": task.user.username,
+#                     "task_name": task.task_name,
+#                     "message": task.message,
+#                     "task_datetime": dt,
+#                     "task_done": task.current_repeat_done,
+#                     "repeat_type": repeat_type,
+#                     "note": "正式提醒"
+#     """
+#     if not settings.SMTP_SERVER or not settings.SMTP_USER or not email:
+#         raise ValueError("用户SMTP或Email未配置")
+#
+#     # 生成图片 data URI
+#     img_data_uri = image_to_data_uri(local_image_path) if local_image_path else ""
+#     context["img_data_uri"] = img_data_uri
+#
+#     # =============== Jinja2 模板渲染 ===============
+#     template = jinja2_env.get_template("/mail.html")
+#     body_html = template.render(context)
+#
+#     # =============== 构建邮件 ===============
+#     msg = MIMEMultipart("alternative")
+#     msg['From'] = formataddr(("Schedule Task Reminder", settings.SMTP_USER))
+#     msg['To'] = formataddr((context.get("username", ""), email))
+#     msg['Subject'] = Header(subject, 'utf-8')
+#
+#     # 纯文本（防止客户端不支持 HTML）
+#     text_part = MIMEText("任务提醒，请查看邮件内容。", "plain", "utf-8")
+#     html_part = MIMEText(body_html, "html", "utf-8")
+#
+#     msg.attach(text_part)
+#     msg.attach(html_part)
+#
+#     # =============== 同步发送函数（放到线程池） ===============
+#     def _send():
+#         with smtplib.SMTP_SSL(settings.SMTP_SERVER,settings.SMTP_PORT) as server:
+#             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+#             server.sendmail(settings.SMTP_USER, [email,], msg.as_string())
+#             try:
+#                 server.quit()
+#             # 忽略 QQ 邮箱关闭连接时的异常
+#             except smtplib.SMTPResponseException:
+#                 pass
+#
+#     # 使用 asyncio.to_thread 在异步环境下执行同步函数
+#     await asyncio.to_thread(_send)
+
+async def send_email_with_win32(
+        to: typing.Union[str, list[str]],
+        subject: str,
+        context: typing.Dict,
+        local_image_path: typing.Optional[str] = None,
+        cc: typing.Union[str, list[str]] = None,
+        sender: typing.Optional[str] = None,
+):
     """
     异步发送 HTML 邮件（使用 asyncio.to_thread 避免阻塞）
-    :param email:
+    :param to:
     :param local_image_path:
     :param subject: 邮件主题
     :param context: 邮件内容字典
@@ -116,11 +178,10 @@ async def send_email_html(email: str, subject: str, context: typing.Dict, local_
                     "task_done": task.current_repeat_done,
                     "repeat_type": repeat_type,
                     "note": "正式提醒"
+    :param cc:
+    :param sender:
     """
-    if not settings.SMTP_SERVER or not settings.SMTP_USER or not email:
-        raise ValueError("用户SMTP或Email未配置")
-
-    # 生成图片 data URI
+    # =============== 生成图片 data URI ===============
     img_data_uri = image_to_data_uri(local_image_path) if local_image_path else ""
     context["img_data_uri"] = img_data_uri
 
@@ -128,29 +189,40 @@ async def send_email_html(email: str, subject: str, context: typing.Dict, local_
     template = jinja2_env.get_template("/mail.html")
     body_html = template.render(context)
 
-    # =============== 构建邮件 ===============
-    msg = MIMEMultipart("alternative")
-    msg['From'] = formataddr(("Schedule Task Reminder", settings.SMTP_USER))
-    msg['To'] = formataddr((context.get("username", ""), email))
-    msg['Subject'] = Header(subject, 'utf-8')
-
-    # 纯文本（防止客户端不支持 HTML）
-    text_part = MIMEText("任务提醒，请查看邮件内容。", "plain", "utf-8")
-    html_part = MIMEText(body_html, "html", "utf-8")
-
-    msg.attach(text_part)
-    msg.attach(html_part)
-
     # =============== 同步发送函数（放到线程池） ===============
     def _send():
-        with smtplib.SMTP_SSL(settings.SMTP_SERVER,settings.SMTP_PORT) as server:
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_USER, [email,], msg.as_string())
-            try:
-                server.quit()
-            # 忽略 QQ 邮箱关闭连接时的异常
-            except smtplib.SMTPResponseException:
-                pass
+        try:
+            # 启动 Outlook 应用
+            outlook = win32.Dispatch('outlook.application')
+            # 创建邮件项
+            mail = outlook.CreateItem(0)
+
+            # 设置邮件基本信息
+            mail.Subject = subject
+            mail.BodyFormat = 2  # 2 代表HTML格式
+            mail.HTMLBody = body_html
+
+            if isinstance(to, str):
+                mail.To = to
+            else:
+                mail.To = ";".join(to)
+
+            if isinstance(to, str):
+                mail.CC = cc
+            elif isinstance(to, list):
+                mail.CC = ";".join(cc)
+
+            # 如果Outlook配置了多个账户，指定发送邮箱
+            if sender:
+                mail.SentOnBehalfOfName = sender
+
+            # 发送邮件
+            mail.Send()
+            print(f"send email successfully")
+
+        except Exception as err:
+            print(f"send email error: {traceback.format_exc()}")
+            raise err
 
     # 使用 asyncio.to_thread 在异步环境下执行同步函数
     await asyncio.to_thread(_send)

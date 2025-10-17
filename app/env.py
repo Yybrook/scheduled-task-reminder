@@ -7,10 +7,10 @@ env_path = os.path.join(father_dir_name, ".env")
 
 
 class Settings(BaseSettings):
-    SMTP_SERVER: str
-    SMTP_PORT: int = 465
-    SMTP_USER: str
-    SMTP_PASSWORD: str
+    # SMTP_SERVER: str
+    # SMTP_PORT: int = 465
+    # SMTP_USER: str
+    # SMTP_PASSWORD: str
 
     SQL_HOST: str
     SQL_PORT: int = 3306
