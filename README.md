@@ -6,8 +6,32 @@
 
 ----
 ### 如何运行
+在根目录创建 .env 文件
+```env
+# smtp方式发送邮件功能已取消，改为outlook
+# SMTP_SERVER=smtp.qq.com    # smtp 服务器
+# SMTP_PORT=465      # smtp 端口号
+# SMTP_USER=USER@qq.com      # smtp 邮箱
+# SMTP_PASSWORD=PASSWORD  # smtp 密码
+# SQL_HOST=localhost       # mysql ip地址
+
+SQL_PORT=3306       # mysql 端口号
+SQL_USER=root       # mysql 用户名
+SQL_PASSWORD=123   # mysql 密码
+SQL_DATABASE=scheduled_task_reminder   # mysql 数据库名称
+```
+下载环境
 ```shell
 uv sync
+```
+激活环境
+```shell
+# cmd
+.venv\Scripts\activate
+
+# powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
 ```
 初始化数据库配置
 ```shell
@@ -17,18 +41,9 @@ aerich init -t app.models.mysql_config.MYSQL_TORTOISE_ORM
 ```shell
 aerich init-db
 ```
-在根目录创建.env文件
-```python
-SMTP_SERVER=""    # smtp 服务器
-SMTP_PORT=""      # smtp 端口号
-SMTP_USER=""      # smtp 邮箱
-SMTP_PASSWORD=""  # smtp 密码
-
-SQL_HOST=""       # mysql ip地址
-SQL_PORT=""       # mysql 端口号
-SQL_USER=""       # mysql 用户名
-SQL_PASSWORD=""   # mysql 密码
-SQL_DATABASE=""   # mysql 数据库名称
+运行
+```shell
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
 ```
 
 ----

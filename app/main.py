@@ -7,11 +7,12 @@ from tortoise.contrib.fastapi import register_tortoise
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from models.mysql_config import MYSQL_TORTOISE_ORM
-from routers import login, register, user, new_task, single_tasks, scheduled_tasks, index, mail
-import ulity, auth
-from app.worker.mail_sender import MailSender
-from app.worker import fresher
+from pathlib import Path
+from .models.mysql_config import MYSQL_TORTOISE_ORM
+from .routers import login, register, user, new_task, single_tasks, scheduled_tasks, index, mail
+from . import ulity, auth
+from .worker.mail_sender import MailSender
+from .worker import fresher
 
 # 定时器
 scheduler = AsyncIOScheduler()
@@ -80,7 +81,9 @@ register_tortoise(
 ########################################################################
 # 加载静态文件
 ########################################################################
-app.mount("/statics", StaticFiles(directory="statics", html=True), name="statics")
+BASE_DIR = Path(__file__).resolve().parent  # app/
+
+app.mount("/statics", StaticFiles(directory=BASE_DIR / "statics", html=True), name="statics")
 
 app.include_router(login.router, prefix="/login")
 app.include_router(register.router, prefix="/register")
