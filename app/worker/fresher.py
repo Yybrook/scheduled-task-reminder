@@ -48,26 +48,11 @@ async def fresh_email_remind(app: FastAPI):
                         task_done=task.current_done_times + 1,
                         repeat_type=task.repeat_type_str,
                         note="正式提醒",
-                        local_image_path="./statics/logo.jpg"
+                        local_image_path="app/statics/logo.jpg"
                     )
                     mail_task = format_mail_task(mail_info)
                     await mail_sender.add_task(mail_task)
 
-                # context = {
-                #     "username": task.user.username,
-                #     "task_name": task.name,
-                #     "message": task.message,
-                #     "task_datetime": _task_dt.strftime("%Y-%m-%d %H:%M"),
-                #     "task_done": task.current_done_times + 1,
-                #     "repeat_type": task.repeat_type_str,
-                #     "note": "正式提醒"
-                # }
-                # await ulity.send_email_with_win32(
-                #     to=task.user.email,
-                #     subject=f"[正式提醒] {task.name}",
-                #     context=context,
-                #     local_image_path="./statics/logo.jpg"
-                # )
                 # 刷新下一次任务
                 task.fresh_next_task()
             # 提前提醒
@@ -89,27 +74,10 @@ async def fresh_email_remind(app: FastAPI):
                                 task_done=task.current_done_times + 1,
                                 repeat_type=task.repeat_type_str,
                                 note=f"提前{day}天提醒",
-                                local_image_path="./statics/logo.jpg"
+                                local_image_path="app/statics/logo.jpg"
                             )
                             mail_task = format_mail_task(mail_info)
                             await mail_sender.add_task(mail_task)
-
-                        # context = {
-                        #     "username": task.user.username,
-                        #     "task_name": task.name,
-                        #     "message": task.message,
-                        #     "task_datetime": _task_dt.strftime("%Y-%m-%d %H:%M"),
-                        #     "task_done": task.current_done_times + 1,
-                        #     "repeat_type": task.repeat_type_str,
-                        #     "note": f"提前 {day} 天提醒"
-                        # }
-                        #
-                        # await ulity.send_email_with_win32(
-                        #     to=task.user.email,
-                        #     subject=f"[提前{day}天] {task.name}",
-                        #     context=context,
-                        #     local_image_path="./statics/logo.jpg"
-                        # )
 
                         _adv_status[day] = True
                         break

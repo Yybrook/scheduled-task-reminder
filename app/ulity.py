@@ -10,6 +10,7 @@ import io
 import jinja2
 import win32com.client as win32
 import traceback
+import pythoncom
 # import smtplib
 # from email.mime.multipart import MIMEMultipart
 # from email.mime.text import MIMEText
@@ -21,7 +22,7 @@ import traceback
 
 # jinja2环境
 jinja2_env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader("./statics"),
+    loader=jinja2.FileSystemLoader("app/statics"),
     autoescape=True
 )
 
@@ -182,7 +183,9 @@ async def send_email_with_win32(
     :param sender:
     """
     # =============== 生成图片 data URI ===============
-    img_data_uri = image_to_data_uri(local_image_path) if local_image_path else ""
+    # todo 图片需要验证，有可能地址不正确
+    img_data_uri = ""
+    # img_data_uri = image_to_data_uri(local_image_path) if local_image_path else ""
     context["img_data_uri"] = img_data_uri
 
     # =============== Jinja2 模板渲染 ===============
@@ -192,6 +195,7 @@ async def send_email_with_win32(
     # =============== 同步发送函数（放到线程池） ===============
     def _send():
         try:
+            pythoncom.CoInitialize()
             # 启动 Outlook 应用
             outlook = win32.Dispatch('outlook.application')
             # 创建邮件项
@@ -207,9 +211,9 @@ async def send_email_with_win32(
             else:
                 mail.To = ";".join(to)
 
-            if isinstance(to, str):
+            if isinstance(cc, str):
                 mail.CC = cc
-            elif isinstance(to, list):
+            elif isinstance(cc, list):
                 mail.CC = ";".join(cc)
 
             # 如果Outlook配置了多个账户，指定发送邮箱
@@ -223,6 +227,8 @@ async def send_email_with_win32(
         except Exception as err:
             print(f"send email error: {traceback.format_exc()}")
             raise err
+        finally:
+            pythoncom.CoUninitialize()
 
     # 使用 asyncio.to_thread 在异步环境下执行同步函数
     await asyncio.to_thread(_send)

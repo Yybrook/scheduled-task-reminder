@@ -72,28 +72,14 @@ async def test_email(request: Request, profile: ProfileIn, user: User = Depends(
             task_done=1,
             repeat_type="不重复",
             note="邮件测试",
-            local_image_path="./statics/logo.jpg"
+            local_image_path="app/statics/logo.jpg"
         )
         mail_task = format_mail_task(mail_info)
         # 从 app.state 取出全局 MailSender 实例
         mail_sender: MailSender = request.app.state.mail_sender
         await mail_sender.add_task(mail_task)
 
-        # context = {
-        #     "username": user.username,
-        #     "task_name": "邮件测试任务",
-        #     "message": "用于电子邮件的发送测试，无需回复",
-        #     "task_datetime": ulity.now().strftime("%Y-%m-%d %H:%M"),
-        #     "task_done": 1,
-        #     "repeat_type": "不重复",
-        #     "note": "邮件测试"
-        # }
-        # await ulity.send_email_with_win32(
-        #     to=str(profile.email),
-        #     subject=f"[邮件测试] 邮件测试任务",
-        #     context=context,
-        #     local_image_path="./statics/logo.jpg"
-        # )
+        # todo 邮件发送成功再返回 信息
         return {"success": True, "message": "邮件任务添加成功"}
     except Exception as err:
         raise HTTPException(status_code=500, detail=f"邮件任务添加失败: {err}")
